@@ -1,1 +1,51 @@
-// TODO
+.content {
+  margin-top: 2rem;
+
+  a {
+    display: block;
+
+    & + a {
+      margin-top: 3rem;
+    }
+
+    strong {
+      font-size: 1.75rem;
+      font-weight: bold;
+      line-height: 2.25rem;
+      color: var(--heading);
+    }
+
+    p {
+      font-size: 1.125rem;
+      line-height: 1.375rem;
+      margin-top: 0.5rem;
+      color: var(--body);
+    }
+
+    div {
+      display: flex;
+
+      div {
+        margin-top: 1.5rem;
+        color: var(--info);
+
+        span {
+          margin-left: 0.5rem;
+        }
+      }
+
+      & + div {
+        margin-left: 1.75rem;
+      }
+    }
+  }
+
+  button {
+    // display: block;
+    border: 0;
+    background: inherit;
+    margin-top: 3rem;
+    color: var(--highlight);
+    font-size: 1.125rem;
+  }
+}

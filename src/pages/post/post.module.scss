@@ -1,1 +1,49 @@
-// TODO
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    height: 20rem;
+  }
+}
+
+.content {
+  h1 {
+    font-size: 3rem;
+    font-weight: 900;
+  }
+
+  strong {
+    display: block;
+    margin-top: 3rem;
+    font-size: 1.75rem;
+    font-weight: bold;
+    line-height: 2.25rem;
+    color: var(--heading);
+  }
+
+  p {
+    font-size: 1.125rem;
+    line-height: 1.375rem;
+    margin-top: 0.5rem;
+    color: var(--body);
+  }
+
+  div {
+    display: flex;
+
+    div {
+      margin-top: 1rem;
+      color: var(--info);
+
+      span {
+        margin-left: 0.5rem;
+      }
+    }
+
+    & + div {
+      margin-left: 1.5rem;
+    }
+  }
+}
