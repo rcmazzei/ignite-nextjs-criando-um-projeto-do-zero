@@ -13,10 +13,14 @@ import { getPrismicClient } from '../../services/prismic';
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
 
+interface PostPagination {
+  uid: string;
+  title: string;
+}
 interface Post {
   uid?: string;
   first_publication_date: string | null;
-  last_publication_date: string | null;
+  last_publication_date?: string | null;
   data: {
     title: string;
     subtitle: string;
@@ -31,18 +35,15 @@ interface Post {
       }[];
     }[];
   };
-}
-
-interface PostPagination {
-  uid: string;
-  title: string;
-}
-
-interface PostProps {
-  post: Post;
   prevPost?: PostPagination;
   nextPost?: PostPagination;
-  preview: boolean;
+  preview?: boolean;
+}
+interface PostProps {
+  post: Post;
+  // prevPost?: PostPagination;
+  // nextPost?: PostPagination;
+  // preview: boolean;
 }
 
 function calculateEstimatedReadingTime(post: Post): string {
@@ -67,31 +68,28 @@ function calculateEstimatedReadingTime(post: Post): string {
   return `${estimated_reading_time} min`;
 }
 
-export default function Post({
-  post,
-  prevPost,
-  nextPost,
-  preview,
-}: PostProps): JSX.Element {
+export default function Post({ post }: PostProps): JSX.Element {
   const { isFallback } = useRouter();
 
+  const { prevPost, nextPost, preview } = post;
   const estimated_reading_time = calculateEstimatedReadingTime(post);
 
   useEffect(() => {
-    const script = document.createElement('script');
     const anchor = document.getElementById('comments');
 
-    script.setAttribute('src', 'https://utteranc.es/client.js');
-    script.setAttribute('crossorigin', 'anonymous');
-    script.setAttribute('async', 'true');
-    script.setAttribute('repo', 'rcmazzei/space-traveling');
-    script.setAttribute('issue-term', 'pathname');
-    script.setAttribute('theme', 'github-dark');
+    if (anchor) {
+      const script = document.createElement('script');
+      script.setAttribute('src', 'https://utteranc.es/client.js');
+      script.setAttribute('crossorigin', 'anonymous');
+      script.setAttribute('async', 'true');
+      script.setAttribute('repo', 'rcmazzei/space-traveling');
+      script.setAttribute('issue-term', 'pathname');
+      script.setAttribute('theme', 'github-dark');
 
-    anchor.appendChild(script);
-
+      anchor.appendChild(script);
+    }
     return () => {
-      anchor.removeChild(anchor.firstChild);
+      anchor?.removeChild(anchor.firstChild);
     };
   }, [post.uid]);
 
@@ -127,7 +125,8 @@ export default function Post({
             </div>
           </div>
           <span>
-            {post.last_publication_date !== post.first_publication_date &&
+            {post.last_publication_date &&
+              post.last_publication_date !== post.first_publication_date &&
               format(
                 new Date(post.last_publication_date),
                 "'*editado em' dd MMM yyyy', às' hh:m",
@@ -147,7 +146,7 @@ export default function Post({
         </main>
         <footer className={styles.footer}>
           <div>
-            {prevPost.uid && (
+            {prevPost?.uid && (
               <Link href={`/post/${prevPost.uid}`}>
                 <a>
                   <strong>{prevPost.title}</strong>
@@ -157,7 +156,7 @@ export default function Post({
             )}
           </div>
           <div className={styles.nextPost}>
-            {nextPost.uid && (
+            {nextPost?.uid && (
               <Link href={`/post/${nextPost.uid}`}>
                 <a>
                   <strong>{nextPost.title}</strong>
@@ -250,7 +249,7 @@ export const getStaticProps: GetStaticProps = async ({
 
   const prevPost = {
     uid: prevPostResponse?.results[0]?.uid ?? null,
-    title: prevPostResponse?.results[0]?.data.title ?? null,
+    title: prevPostResponse?.results[0]?.data?.title ?? null,
   };
 
   const nextPostResponse = await prismic.query(
@@ -270,17 +269,19 @@ export const getStaticProps: GetStaticProps = async ({
 
   const nextPost = {
     uid: nextPostResponse?.results[0]?.uid ?? null,
-    title: nextPostResponse?.results[0]?.data.title ?? null,
+    title: nextPostResponse?.results[0]?.data?.title ?? null,
   };
 
   // console.log(JSON.stringify(response, null, 3));
 
   return {
     props: {
-      post,
-      prevPost,
-      nextPost,
-      preview,
+      post: {
+        ...post,
+        prevPost,
+        nextPost,
+        preview,
+      },
     },
   };
 };
