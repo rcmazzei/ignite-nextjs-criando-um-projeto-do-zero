@@ -19,5 +19,3 @@ export default async (
     res.status(405).end('Method not allowed');
   }
 };
-
-// export default posts;

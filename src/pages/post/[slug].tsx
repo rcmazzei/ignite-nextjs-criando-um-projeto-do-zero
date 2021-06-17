@@ -1,9 +1,11 @@
 import { GetStaticPaths, GetStaticProps } from 'next';
+import Link from 'next/link';
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 import { useRouter } from 'next/router';
 import Prismic from '@prismicio/client';
 import { FiUser, FiCalendar, FiClock } from 'react-icons/fi';
+import { useEffect } from 'react';
 import Header from '../../components/Header';
 
 import { getPrismicClient } from '../../services/prismic';
@@ -14,6 +16,7 @@ import styles from './post.module.scss';
 interface Post {
   uid?: string;
   first_publication_date: string | null;
+  last_publication_date: string | null;
   data: {
     title: string;
     subtitle: string;
@@ -30,8 +33,16 @@ interface Post {
   };
 }
 
+interface PostPagination {
+  uid: string;
+  title: string;
+}
+
 interface PostProps {
   post: Post;
+  prevPost?: PostPagination;
+  nextPost?: PostPagination;
+  preview: boolean;
 }
 
 function calculateEstimatedReadingTime(post: Post): string {
@@ -56,14 +67,37 @@ function calculateEstimatedReadingTime(post: Post): string {
   return `${estimated_reading_time} min`;
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({
+  post,
+  prevPost,
+  nextPost,
+  preview,
+}: PostProps): JSX.Element {
   const { isFallback } = useRouter();
+
+  const estimated_reading_time = calculateEstimatedReadingTime(post);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    const anchor = document.getElementById('comments');
+
+    script.setAttribute('src', 'https://utteranc.es/client.js');
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('async', 'true');
+    script.setAttribute('repo', 'rcmazzei/space-traveling');
+    script.setAttribute('issue-term', 'pathname');
+    script.setAttribute('theme', 'github-dark');
+
+    anchor.appendChild(script);
+
+    return () => {
+      anchor.removeChild(anchor.firstChild);
+    };
+  }, [post.uid]);
 
   if (isFallback) {
     return <div>Carregando...</div>;
   }
-
-  const estimated_reading_time = calculateEstimatedReadingTime(post);
 
   return (
     <>
@@ -74,7 +108,7 @@ export default function Post({ post }: PostProps): JSX.Element {
       <div className={commonStyles.container}>
         <main className={styles.content}>
           <h1>{post.data.title}</h1>
-          <div>
+          <div className={styles.info}>
             <div>
               <FiCalendar size={20} />
               <span>
@@ -92,6 +126,16 @@ export default function Post({ post }: PostProps): JSX.Element {
               <span>{estimated_reading_time}</span>
             </div>
           </div>
+          <span>
+            {post.last_publication_date !== post.first_publication_date &&
+              format(
+                new Date(post.last_publication_date),
+                "'*editado em' dd MMM yyyy', às' hh:m",
+                {
+                  locale: ptBR,
+                }
+              )}
+          </span>
           {post.data.content.map(c => (
             <article key={c.heading}>
               <strong>{c.heading}</strong>
@@ -101,6 +145,36 @@ export default function Post({ post }: PostProps): JSX.Element {
             </article>
           ))}
         </main>
+        <footer className={styles.footer}>
+          <div>
+            {prevPost.uid && (
+              <Link href={`/post/${prevPost.uid}`}>
+                <a>
+                  <strong>{prevPost.title}</strong>
+                  <span>Post anterior</span>
+                </a>
+              </Link>
+            )}
+          </div>
+          <div className={styles.nextPost}>
+            {nextPost.uid && (
+              <Link href={`/post/${nextPost.uid}`}>
+                <a>
+                  <strong>{nextPost.title}</strong>
+                  <span>Próximo post</span>
+                </a>
+              </Link>
+            )}
+          </div>
+        </footer>
+        <div id="comments" />
+        {preview ? (
+          <Link href="/api/exit-preview">
+            <a className={styles.previewButton}>
+              <span>Sair do Modo Preview</span>
+            </a>
+          </Link>
+        ) : null}
       </div>
     </>
   );
@@ -123,26 +197,31 @@ export const getStaticPaths: GetStaticPaths = async () => {
     };
   });
 
-  // console.log(paths);
-
   return {
     paths,
     fallback: true,
   };
 };
 
-export const getStaticProps: GetStaticProps = async context => {
+export const getStaticProps: GetStaticProps = async ({
+  params,
+  preview = false,
+  previewData,
+}) => {
   const prismic = getPrismicClient();
 
-  const { slug } = context.params;
+  const { slug } = params;
 
-  const response = await prismic.getByUID('posts', String(slug), {});
-
-  // console.log(JSON.stringify(response, null, 3));
+  const response = await prismic.getByUID('posts', String(slug), {
+    ref: previewData?.ref ?? null,
+  });
 
   const post = {
     uid: response.uid,
-    first_publication_date: response.first_publication_date,
+    first_publication_date:
+      response.first_publication_date ?? new Date().toISOString(),
+    last_publication_date:
+      response.last_publication_date ?? new Date().toISOString(),
     data: {
       title: response.data.title,
       subtitle: response.data.subtitle,
@@ -154,9 +233,54 @@ export const getStaticProps: GetStaticProps = async context => {
     },
   };
 
+  const prevPostResponse = await prismic.query(
+    [
+      Prismic.predicates.at('document.type', 'posts'),
+      Prismic.predicates.dateBefore(
+        'document.first_publication_date',
+        new Date(post.first_publication_date)
+      ),
+    ],
+    {
+      pageSize: 1,
+      orderings: ['[document.first_publication_date desc]'],
+      ref: previewData?.ref ?? null,
+    }
+  );
+
+  const prevPost = {
+    uid: prevPostResponse?.results[0]?.uid ?? null,
+    title: prevPostResponse?.results[0]?.data.title ?? null,
+  };
+
+  const nextPostResponse = await prismic.query(
+    [
+      Prismic.predicates.at('document.type', 'posts'),
+      Prismic.predicates.dateAfter(
+        'document.first_publication_date',
+        new Date(post.first_publication_date)
+      ),
+    ],
+    {
+      pageSize: 1,
+      orderings: ['[document.first_publication_date]'],
+      ref: previewData?.ref ?? null,
+    }
+  );
+
+  const nextPost = {
+    uid: nextPostResponse?.results[0]?.uid ?? null,
+    title: nextPostResponse?.results[0]?.data.title ?? null,
+  };
+
+  // console.log(JSON.stringify(response, null, 3));
+
   return {
     props: {
       post,
+      prevPost,
+      nextPost,
+      preview,
     },
   };
 };

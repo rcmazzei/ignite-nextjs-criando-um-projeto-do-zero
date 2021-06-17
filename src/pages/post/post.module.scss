@@ -30,6 +30,14 @@
     color: var(--body);
   }
 
+  > span {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--info);
+    font-style: italic;
+    margin-top: 1rem;
+  }
+
   div {
     display: flex;
 
@@ -45,5 +53,51 @@
     & + div {
       margin-left: 1.5rem;
     }
+  }
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3.75rem;
+  margin-bottom: 5rem;
+  border-top: 1px solid var(--body);
+
+  a {
+    display: flex;
+    flex-direction: column;
+    margin-top: 3rem;
+
+    strong {
+      font-size: 1.25rem;
+      color: var(--heading);
+    }
+
+    span {
+      font-size: 1rem;
+      color: var(--highlight);
+    }
+  }
+
+  .nextPost {
+    span {
+      text-align: right;
+    }
+  }
+}
+
+.previewButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--heading);
+  height: 3.5rem;
+  border-radius: 0.25rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+
+  span {
+    font-size: 1.125rem;
+    color: var(--background);
   }
 }
